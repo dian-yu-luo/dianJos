@@ -59,19 +59,24 @@ int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	
-    uint32_t *ebp;
-
+	uint32_t *ebp;
+	struct Eipdebuginfo tinfo;
     ebp = (uint32_t *)read_ebp();
 
     cprintf("Stack backtrace:\r\n");
-/* 这个函数好就好在不会真的修改bp 寄存器上面的值,可以有效的方式物理内容发生修改 */
+
     while (ebp)
     {
         cprintf("  ebp %08x  eip %08x  args %08x %08x %08x %08x %08x\r\n", 
                 ebp, ebp[1], ebp[2], ebp[3], ebp[4], ebp[5], ebp[6]);
-
+		int res = debuginfo_eip(ebp[1], &tinfo);	//因为原型里指定的是指针，所以此处取地址
+		if(res != 0)	cprintf("Error!\n");
+		else {
+			cprintf("\t\t%s:%d: %.*s+%u\n", tinfo.eip_file, tinfo.eip_line, tinfo.eip_fn_namelen, tinfo.eip_fn_name, ebp[1] - tinfo.eip_fn_addr);
+		}
         ebp = (uint32_t *)*ebp;
     }
+
 
 	return 0;
 }
